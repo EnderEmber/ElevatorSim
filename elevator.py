@@ -5,7 +5,7 @@ class Simulation:
     self.numFloors = 6
     self.elevatorCapacity = 8
     self.floor1ArrivalRate = .5 #Per minute
-    self.floorXArrivalRate = self.floor1ArrivalRate/(self.numFloors-1) #Per minute
+    self.floorXArrivalRate = self.floor1ArrivalRate/(self.numFloors-1) + 0.01 #Per minute
     self.elevatorSpeed = 10 #seconds between floors
     self.timeAtFloor = 15 #seconds when stopped
     self.events = PriorityQueue()
