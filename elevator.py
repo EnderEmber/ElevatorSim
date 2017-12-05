@@ -1,4 +1,5 @@
 import random
+import numpy.random as random
 from queue import PriorityQueue
 
 class Simulation:
@@ -22,18 +23,16 @@ class Simulation:
 
     self.firstFloorQueue = 0
     self.otherFloorQueues = []
-    for i in range(numFloors-1):
-      self.otherFloorQueues[i] = 0 #The floor number = list index + 2
+    for i in range(self.numFloors-1):
+      self.otherFloorQueues.append(0) #The floor number = list index + 2
     #States of the floor queues
     
     self.scheduleERV(self.floorOneArrival, self.floor1ArrivalRate)
     self.scheduleERV(self.floorOtherArrival, self.floorXArrivalRate)
+    self.scheduleTIME(self.elevatorLoad, 5)
 
   def scheduleERV(self, event, propensity):
     self.events.put((self.time + random.exponential(1.0/propensity), event))
-    
-  def scheduleNRV(self, event, mean, stddev):
-    self.events.put((self.time + random.normal(mean, stddev), event))
     
   def scheduleTIME(self, event, time):
     self.events.put((self.time + time, event))
@@ -44,19 +43,20 @@ class Simulation:
   
   def floorOtherArrival(self):
     self.scheduleERV(self.floorOtherArrival, self.floorXArrivalRate)
-    floor = random.randint(2,self.numFloors)
+    floor = random.randint(2,self.numFloors+1)
     if floor not in self.goingDownFloors:
       self.goingDownFloors.append(floor)
     self.otherFloorQueues[floor-2] += 1
   
   def elevatorLoad(self):
-    self.scheduleTIME(self.elevatorArriveAtFloor, .25)
+    self.scheduleTIME(self.elevatorArriveAtFloor, self.timeAtFloor + self.elevatorSpeed)
     capacityDifference = self.elevatorCapacity - self.peopleInElevator
     if self.currentFloorNum == 1:
       while self.firstFloorQueue > 0 and capacityDifference > 0:
         self.peopleInElevator += 1
-        floor = random.randint(2,self.numFloors)
+        floor = random.randint(2,self.numFloors+1)
         self.goingUpFloors.append(floor)
+        print(self.goingUpFloors)
         self.firstFloorQueue -= 1
         capacityDifference -= 1
     else:
@@ -83,8 +83,8 @@ class Simulation:
     if self.goingUp:
       self.currentFloorNum += 1
       if self.currentFloorNum in self.goingUpFloors:
-        self.elevatorUnload()
-        if self.goingUpFloors == []:
+        self.elevatorUnload() #schedule instead of call?
+        if self.goingUpFloors == [] and self.goingDownFloors != []:
           if self.currentFloorNum > max(self.goingDownFloors):
             self.goingUp = False
           elif self.currentFloorNum == max(self.goingDownFloors):
@@ -95,6 +95,7 @@ class Simulation:
               self.otherFloorQueues[floorIndex] -= 1
               capacityDifference -= 1
             self.goingUp = False
+        self.goingUp = False
       else:
         if self.goingUpFloors == []:
           if self.currentFloorNum == max(self.goingDownFloors):
@@ -105,7 +106,7 @@ class Simulation:
               self.otherFloorQueues[floorIndex] -= 1
               capacityDifference -= 1
             self.goingUp = False
-        self.schedule(self.elevatorArriveAtFloor, self.elevatorSpeed)
+        self.scheduleTIME(self.elevatorArriveAtFloor, self.elevatorSpeed)
     else:
       self.currentFloorNum -= 1
       if self.currentFloorNum == 1:
@@ -113,17 +114,14 @@ class Simulation:
       elif self.currentFloorNum in self.goingDownFloors:
         self.elevatorLoad()
 
+  def update(self):
+    next_event = self.events.get()
+    self.time = next_event[0]
+    next_event[1]()
         
 dt = 1
-sim_time = 600
+sim_time = 10
 snapshot_interval = 10
 next_snapshot = snapshot_interval
 
 sim = Simulation()
-
-#for i in range(sim_time):
-while sim.time < sim_time:
-  # randomly determine whether an event happens this second
-    sim.update()
-    if ( sim.time > next_snapshot):
-      print("People in elevator:" , sim.peopleInElevator)
