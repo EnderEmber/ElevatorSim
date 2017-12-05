@@ -112,3 +112,18 @@ class Simulation:
         self.elevatorUnloadFirst()
       elif self.currentFloorNum in self.goingDownFloors:
         self.elevatorLoad()
+
+        
+dt = 1
+sim_time = 600
+snapshot_interval = 10
+next_snapshot = snapshot_interval
+
+sim = Simulation()
+
+#for i in range(sim_time):
+while sim.time < sim_time:
+  # randomly determine whether an event happens this second
+    sim.update()
+    if ( sim.time > next_snapshot):
+      print("People in elevator:" , sim.peopleInElevator)
