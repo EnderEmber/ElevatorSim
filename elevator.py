@@ -101,9 +101,14 @@ class Simulation:
     self.goingUp = True
     self.elevatorLoad()
 
-  def elevatorArriveAtFloor(self):
+  def elevatorArriveAtFloor(self, floor):
     #ONLY calls load or unload
-    self.currentFloorNum = 
+    self.currentFloorNum = floor
+    if floor == 1: #???
+      if self.peopleInElevator > 0:
+        self.elevatorUnload()
+      else:
+        self.elevatorLoad()
     if self.goingUp:
       self.elevatorUnload()
     else:
