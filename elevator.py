@@ -41,7 +41,7 @@ class Simulation:
     
   def elevatorCheckup(self):
     if self.currentFloorNum == 1:
-      print("hi")
+      print("We are at the first floor calling the checkup function")
       if self.firstFloorQueue > 0:
         self.goingToFloor = 1
         self.elevatorArriveAtFloor()
@@ -55,8 +55,10 @@ class Simulation:
       self.goingToFloor = 1
       for i in range(len(self.otherFloorQueues)):
         if self.otherFloorQueues[i] > 0:
+          print("Floor", i+2, "has", self.otherFloorQueues[i], "people waiting")
           self.goingToFloor = i+2
       distance = abs(self.currentFloorNum - self.goingToFloor)
+      print(distance)
       self.scheduleTIME(self.elevatorArriveAtFloor, self.elevatorSpeed * distance)
     
     
@@ -81,8 +83,19 @@ class Simulation:
         print(self.goingUpFloors)
         self.firstFloorQueue -= 1
         capacityDifference -= 1
-      self.goingToFloor = min(self.goingUpFloors)
-      print("Minimum floor:", self.goingToFloor)
+      if self.goingUpFloors == []:
+        print("Going Up Floors is empty")
+        if self.goingDownFloors != []:
+          print("Going Down Floors is not empty")
+          self.goingToFloor = max(self.goingDownFloors)
+          distance = self.goingToFloor - 1
+          self.scheduleTIME(self.elevatorArriveAtFloor, self.timeAtFloor + (self.elevatorSpeed * distance))
+        else:
+          print("Going down floors is empty, checking up 5 minutes from now")
+          self.scheduleTIME(self.elevatorCheckup, 5)
+      else:
+        self.goingToFloor = min(self.goingUpFloors)
+        print("Minimum floor:", self.goingToFloor)
     else:
       capacityDifference = self.elevatorCapacity - self.peopleInElevator
       floorIndex = self.currentFloorNum - 2
@@ -105,7 +118,7 @@ class Simulation:
       self.peopleInElevator -= 1
       self.goingUpFloors.remove(self.currentFloorNum)
     if self.peopleInElevator == 0:
-      print("elevator is empty")
+      print("elevator is empty", self.currentFloorNum)
       self.elevatorCheckup()
     elif self.peopleInElevator < 0:
       print("ERROR, WTF")
@@ -121,12 +134,12 @@ class Simulation:
   def elevatorArriveAtFloor(self):
     #ONLY calls load or unload
     self.currentFloorNum = self.goingToFloor
-    if self.goingToFloor == 1: #???
+    if self.goingToFloor == 1:
       if self.peopleInElevator > 0:
         self.elevatorUnloadFirst()
       else:
         self.elevatorLoad()
-    if self.goingUp:
+    if self.goingUp: #THIS IS PROBABLY NOT NECESSARY, **BUT** WE NEED TO UNLOAD PEOPLE AT FLOORS != 1
       self.elevatorUnload()
     else:
       self.elevatorLoad()
