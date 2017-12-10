@@ -14,20 +14,20 @@ class Simulation:
     self.events = PriorityQueue()
     #Initialization parameters
 
-    self.goingUpFloors = []
-    self.goingDownFloors = []
+    self.goingUpFloors = []     #list of floors elevator is going to on the way up
+    self.goingDownFloors = []   #list of floors with people waiting to go down 
     self.currentFloorNum = 1
     self.peopleInElevator = 0
     #States of the elevator
 
-    self.firstFloorQueue = 0
-    self.otherFloorQueues = []
+    self.firstFloorQueue = 0    #how many people are waiting on the first floor
+    self.otherFloorQueues = []  #how many people are waiting on the other floors
     for i in range(self.numFloors-1):
       self.otherFloorQueues.append(0) #The floor number = list index + 2
     #States of the floor queues
     
-    self.goingToFloor = 1
-    
+    self.goingToFloor = 1       #destination
+        
     self.scheduleERV(self.floorOneArrival, self.floor1ArrivalRate)
     self.scheduleERV(self.floorOtherArrival, self.floorXArrivalRate)
     self.scheduleTIME(self.elevatorCheckup, 5)
@@ -39,6 +39,8 @@ class Simulation:
     self.events.put((self.time + period + 0.001, event))
     
   def elevatorCheckup(self):
+     """This function is called when the elevator is empty to check where the 
+    elevator is and where it needs to go next"""
     if self.currentFloorNum == 1:
       print("We are at the first floor calling the checkup function")
       if self.firstFloorQueue > 0:
@@ -64,10 +66,15 @@ class Simulation:
     
     
   def floorOneArrival(self):
+     """This function adds one person to the first floor queue and schedules the 
+    next person arriving at the floor"""
     self.scheduleERV(self.floorOneArrival, self.floor1ArrivalRate)
     self.firstFloorQueue += 1
   
   def floorOtherArrival(self):
+     """This function adds one person to a floor queue that is not the first 
+    floor, adds the floor number to the going down list, and schedules the next
+    person arriving at a floor"""
     self.scheduleERV(self.floorOtherArrival, self.floorXArrivalRate)
     floor = random.randint(2,self.numFloors+1)
     if floor not in self.goingDownFloors:
@@ -75,6 +82,11 @@ class Simulation:
     self.otherFloorQueues[floor-2] += 1
   
   def elevatorLoad(self):
+     """This function loads people into the elevator as long as there is space 
+    in the elevator and people waiting to get on. The function is split for 
+    whether or not the elevator is at the first floor so that people getting on
+    the elevator at the first floor can be assigned destination floors and 
+    those floor numbers added to the going up floors list"""
     if self.currentFloorNum == 1:
       capacityDifference = self.elevatorCapacity - self.peopleInElevator
       while self.firstFloorQueue > 0 and capacityDifference > 0:
@@ -120,7 +132,11 @@ class Simulation:
     print("Done Loading Elevator")
 
   def elevatorUnload(self):
-    #IF EMPTY, do the checkup
+    """This function unloads the elevator at all floors that are not the first.
+    If the current floor is in the going up floors list, it removes a person 
+    from the elevator and the floor number from the list until there is no one 
+    else  wanting to get off at that floor then goes to the next floor from the
+    list. Once the elevator is completely unloaded it calls the checkup function"""
     while self.currentFloorNum in self.goingUpFloors:
       print("Current floor:", self.currentFloorNum)
       print("GoingUpFloors:", self.goingUpFloors)
@@ -136,11 +152,15 @@ class Simulation:
       self.scheduleTIME(self.elevatorArriveAtFloor, (self.timeAtFloor + (self.elevatorSpeed * distance)))
                     
   def elevatorUnloadFirst(self):
+     """This function unloads the elevator completely at the first floor then 
+    schedules the checkup function"""
     self.peopleInElevator = 0
     self.scheduleTIME(self.elevatorCheckup, 0)
 
   def elevatorArriveAtFloor(self):
-    #ONLY calls load or unload
+     """This function is called wheen the elevator arrives at a floor and calls 
+    either the load or unload function depending on if the elevator is 
+    travelling up (unload) or down (load)"""
     self.currentFloorNum = self.goingToFloor
     if self.currentFloorNum == 1:
       if self.peopleInElevator > 0:
@@ -155,6 +175,7 @@ class Simulation:
       self.scheduleTIME(self.elevatorLoad, 0)
     
   def update(self):
+    """This function updates the simulation"""
     next_event = self.events.get()
     self.time = next_event[0]
     next_event[1]()
