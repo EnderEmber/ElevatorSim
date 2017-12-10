@@ -5,8 +5,8 @@ from queue import PriorityQueue
 class Simulation:
   def __init__(self):
     self.time = 0
-    self.numFloors = 6
-    self.elevatorCapacity = 8
+    self.numFloors = 10
+    self.elevatorCapacity = 10
     self.floor1ArrivalRate = 1 #Per minute
     self.floorXArrivalRate = self.floor1ArrivalRate/(self.numFloors-1) + 0.01 #Per minute
     self.elevatorSpeed = 0.17 #seconds between floors
@@ -130,10 +130,6 @@ class Simulation:
     if self.peopleInElevator == 0:
       print("elevator is empty at floor", self.currentFloorNum)
       self.scheduleTIME(self.elevatorCheckup, 0)
-    elif self.peopleInElevator < 0:
-      print("ERROR, WTF")
-      self.peopleInElevator = 0
-      self.scheduleTIME(self.elevatorCheckup, 0)
     else:
       self.goingToFloor = min(self.goingUpFloors)
       distance = abs(self.goingToFloor - self.currentFloorNum)
@@ -164,7 +160,7 @@ class Simulation:
     next_event[1]()
         
 dt = 1
-sim_time = 100
+sim_time = 600
 snapshot_interval = 10
 next_snapshot = snapshot_interval
 
