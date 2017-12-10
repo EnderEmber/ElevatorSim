@@ -36,7 +36,7 @@ class Simulation:
     self.events.put((self.time + random.exponential(1.0/propensity), event))
     
   def scheduleTIME(self, event, period):
-    self.events.put((self.time + period, event))
+    self.events.put((self.time + period + 0.001, event))
     
   def elevatorCheckup(self):
     if self.currentFloorNum == 1:
@@ -49,7 +49,9 @@ class Simulation:
         for i in range(len(self.otherFloorQueues)):
           if self.otherFloorQueues[i] > 0:
             self.goingToFloor = i+2
-          self.scheduleTIME(self.elevatorArriveAtFloor, (self.elevatorSpeed * (self.goingToFloor-1)))
+            print("Elevator emptied, other floors:", self.otherFloorQueues)
+            print("We are going to floor", self.goingToFloor)
+        self.scheduleTIME(self.elevatorArriveAtFloor, (self.elevatorSpeed * (self.goingToFloor-1)))
     else:
       self.goingToFloor = 1
       for i in range(len(self.otherFloorQueues)):
@@ -74,7 +76,7 @@ class Simulation:
   
   def elevatorLoad(self):
     if self.currentFloorNum == 1:
-      capacityDifference = self.elevatorCapacity
+      capacityDifference = self.elevatorCapacity - self.peopleInElevator
       while self.firstFloorQueue > 0 and capacityDifference > 0:
         self.peopleInElevator += 1
         floor = random.randint(2,self.numFloors+1)
@@ -131,7 +133,7 @@ class Simulation:
     elif self.peopleInElevator < 0:
       print("ERROR, WTF")
       self.peopleInElevator = 0
-      self.elevatorCheckup()
+      self.scheduleTIME(self.elevatorCheckup, 0)
     else:
       self.goingToFloor = min(self.goingUpFloors)
       distance = abs(self.goingToFloor - self.currentFloorNum)
