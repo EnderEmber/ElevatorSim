@@ -16,7 +16,6 @@ class Simulation:
 
     self.goingUpFloors = []
     self.goingDownFloors = []
-    self.goingUp = True
     self.currentFloorNum = 1
     self.peopleInElevator = 0
     #States of the elevator
@@ -36,30 +35,30 @@ class Simulation:
   def scheduleERV(self, event, propensity):
     self.events.put((self.time + random.exponential(1.0/propensity), event))
     
-  def scheduleTIME(self, event, time):
-    self.events.put((self.time + time, event))
+  def scheduleTIME(self, event, period):
+    self.events.put((self.time + period, event))
     
   def elevatorCheckup(self):
     if self.currentFloorNum == 1:
       print("We are at the first floor calling the checkup function")
       if self.firstFloorQueue > 0:
         self.goingToFloor = 1
-        self.elevatorArriveAtFloor()
+        self.scheduleTIME(self.elevatorArriveAtFloor, 0)
       elif self.firstFloorQueue == 0:
         self.goingToFloor = 1
         for i in range(len(self.otherFloorQueues)):
           if self.otherFloorQueues[i] > 0:
             self.goingToFloor = i+2
-          self.scheduleTIME(self.elevatorArriveAtFloor, self.elevatorSpeed * (self.goingToFloor-1))
-    elif self.currentFloorNum > 1:
+          self.scheduleTIME(self.elevatorArriveAtFloor, (self.elevatorSpeed * (self.goingToFloor-1)))
+    else:
       self.goingToFloor = 1
       for i in range(len(self.otherFloorQueues)):
         if self.otherFloorQueues[i] > 0:
           print("Floor", i+2, "has", self.otherFloorQueues[i], "people waiting")
           self.goingToFloor = i+2
       distance = abs(self.currentFloorNum - self.goingToFloor)
-      print(distance)
-      self.scheduleTIME(self.elevatorArriveAtFloor, self.elevatorSpeed * distance)
+      print("distance to floor:", distance)
+      self.scheduleTIME(self.elevatorArriveAtFloor, (self.elevatorSpeed * distance))
     
     
   def floorOneArrival(self):
@@ -89,13 +88,15 @@ class Simulation:
           print("Going Down Floors is not empty")
           self.goingToFloor = max(self.goingDownFloors)
           distance = self.goingToFloor - 1
-          self.scheduleTIME(self.elevatorArriveAtFloor, self.timeAtFloor + (self.elevatorSpeed * distance))
+          self.scheduleTIME(self.elevatorArriveAtFloor, (self.timeAtFloor + (self.elevatorSpeed * distance)))
         else:
           print("Going down floors is empty, checking up 5 minutes from now")
           self.scheduleTIME(self.elevatorCheckup, 5)
       else:
         self.goingToFloor = min(self.goingUpFloors)
         print("Minimum floor:", self.goingToFloor)
+        distance = self.goingToFloor - 1
+        self.scheduleTIME(self.elevatorArriveAtFloor, (self.timeAtFloor + (self.elevatorSpeed * distance)))
     else:
       capacityDifference = self.elevatorCapacity - self.peopleInElevator
       floorIndex = self.currentFloorNum - 2
@@ -104,9 +105,16 @@ class Simulation:
         self.otherFloorQueues[floorIndex] -= 1
         capacityDifference -= 1
       if self.otherFloorQueues[floorIndex] == 0:
+        print(floorIndex, self.currentFloorNum, "The floor we're trying to remove from the list (index, floor)")
+        print(self.goingDownFloors)
         self.goingDownFloors.remove(self.currentFloorNum)
-      self.goingToFloor = 500
-    self.scheduleTIME(self.elevatorArriveAtFloor, self.timeAtFloor + self.elevatorSpeed)
+      self.goingToFloor = 1
+      for item in self.goingDownFloors:
+        if item > self.goingToFloor and item < self.currentFloorNum:
+          self.goingToFloor = item
+      distance = abs(self.goingToFloor - self.currentFloorNum)
+      print("Finished loading elevator going down, now going to floor", self.goingToFloor)
+      self.scheduleTIME(self.elevatorArriveAtFloor, (self.timeAtFloor + (self.elevatorSpeed * distance)))
     print("Done Loading Elevator")
 
   def elevatorUnload(self):
@@ -118,34 +126,36 @@ class Simulation:
       self.peopleInElevator -= 1
       self.goingUpFloors.remove(self.currentFloorNum)
     if self.peopleInElevator == 0:
-      print("elevator is empty", self.currentFloorNum)
-      self.elevatorCheckup()
+      print("elevator is empty at floor", self.currentFloorNum)
+      self.scheduleTIME(self.elevatorCheckup, 0)
     elif self.peopleInElevator < 0:
       print("ERROR, WTF")
+      self.peopleInElevator = 0
+      self.elevatorCheckup()
     else:
       self.goingToFloor = min(self.goingUpFloors)
-      self.scheduleTIME(self.elevatorArriveAtFloor, self.timeAtFloor + self.elevatorSpeed)
+      distance = abs(self.goingToFloor - self.currentFloorNum)
+      self.scheduleTIME(self.elevatorArriveAtFloor, (self.timeAtFloor + (self.elevatorSpeed * distance)))
                     
   def elevatorUnloadFirst(self):
     self.peopleInElevator = 0
-    self.goingUp = True
-    self.elevatorCheckup()
+    self.scheduleTIME(self.elevatorCheckup, 0)
 
   def elevatorArriveAtFloor(self):
     #ONLY calls load or unload
     self.currentFloorNum = self.goingToFloor
-    if self.goingToFloor == 1:
+    if self.currentFloorNum == 1:
       if self.peopleInElevator > 0:
-        self.elevatorUnloadFirst()
+        self.scheduleTIME(self.elevatorUnloadFirst, 0)
       else:
-        self.elevatorLoad()
-    if self.goingUp: #THIS IS PROBABLY NOT NECESSARY, **BUT** WE NEED TO UNLOAD PEOPLE AT FLOORS != 1
-      self.elevatorUnload()
+        self.scheduleTIME(self.elevatorLoad, 0)
+    elif self.goingUpFloors != []:
+      print("Elevator going up, unloading")
+      self.scheduleTIME(self.elevatorUnload, 0)
     else:
-      self.elevatorLoad()
+      print("Elevator going down, loading")
+      self.scheduleTIME(self.elevatorLoad, 0)
     
-
-
   def update(self):
     next_event = self.events.get()
     self.time = next_event[0]
