@@ -5,10 +5,10 @@ from queue import PriorityQueue
 class Simulation:
   def __init__(self):
     self.time = 0
-    self.numFloors = 10
-    self.elevatorCapacity = 10
+    self.numFloors = 50
+    self.elevatorCapacity = 25
     self.floor1ArrivalRate = 1 #Per minute
-    self.floorXArrivalRate = self.floor1ArrivalRate/(self.numFloors-1) + 0.01 #Per minute
+    self.floorXArrivalRate = self.floor1ArrivalRate/(self.numFloors) - 0.01 #Per minute
     self.elevatorSpeed = 0.17 #seconds between floors
     self.timeAtFloor = 0.25 #seconds when stopped
     self.events = PriorityQueue()
@@ -42,7 +42,6 @@ class Simulation:
     """This function is called when the elevator is empty to check where the 
     elevator is and where it needs to go next"""
     if self.currentFloorNum == 1:
-      print("We are at the first floor calling the checkup function")
       if self.firstFloorQueue > 0:
         self.goingToFloor = 1
         self.scheduleTIME(self.elevatorArriveAtFloor, 0)
@@ -51,17 +50,13 @@ class Simulation:
         for i in range(len(self.otherFloorQueues)):
           if self.otherFloorQueues[i] > 0:
             self.goingToFloor = i+2
-            print("Elevator emptied, other floors:", self.otherFloorQueues)
-            print("We are going to floor", self.goingToFloor)
         self.scheduleTIME(self.elevatorArriveAtFloor, (self.elevatorSpeed * (self.goingToFloor-1)))
     else:
       self.goingToFloor = 1
       for i in range(len(self.otherFloorQueues)):
         if self.otherFloorQueues[i] > 0:
-          print("Floor", i+2, "has", self.otherFloorQueues[i], "people waiting")
           self.goingToFloor = i+2
       distance = abs(self.currentFloorNum - self.goingToFloor)
-      print("distance to floor:", distance)
       self.scheduleTIME(self.elevatorArriveAtFloor, (self.elevatorSpeed * distance))
     
     
@@ -93,22 +88,17 @@ class Simulation:
         self.peopleInElevator += 1
         floor = random.randint(2,self.numFloors+1)
         self.goingUpFloors.append(floor)
-        print(self.goingUpFloors)
         self.firstFloorQueue -= 1
         capacityDifference -= 1
       if self.goingUpFloors == []:
-        print("Going Up Floors is empty")
         if self.goingDownFloors != []:
-          print("Going Down Floors is not empty")
           self.goingToFloor = max(self.goingDownFloors)
           distance = self.goingToFloor - 1
           self.scheduleTIME(self.elevatorArriveAtFloor, (self.timeAtFloor + (self.elevatorSpeed * distance)))
         else:
-          print("Going down floors is empty, checking up 5 minutes from now")
           self.scheduleTIME(self.elevatorCheckup, 5)
       else:
         self.goingToFloor = min(self.goingUpFloors)
-        print("Minimum floor:", self.goingToFloor)
         distance = self.goingToFloor - 1
         self.scheduleTIME(self.elevatorArriveAtFloor, (self.timeAtFloor + (self.elevatorSpeed * distance)))
     else:
@@ -119,17 +109,13 @@ class Simulation:
         self.otherFloorQueues[floorIndex] -= 1
         capacityDifference -= 1
       if self.otherFloorQueues[floorIndex] == 0:
-        print(floorIndex, self.currentFloorNum, "The floor we're trying to remove from the list (index, floor)")
-        print(self.goingDownFloors)
         self.goingDownFloors.remove(self.currentFloorNum)
       self.goingToFloor = 1
       for item in self.goingDownFloors:
         if item > self.goingToFloor and item < self.currentFloorNum:
           self.goingToFloor = item
       distance = abs(self.goingToFloor - self.currentFloorNum)
-      print("Finished loading elevator going down, now going to floor", self.goingToFloor)
       self.scheduleTIME(self.elevatorArriveAtFloor, (self.timeAtFloor + (self.elevatorSpeed * distance)))
-    print("Done Loading Elevator")
 
   def elevatorUnload(self):
     """This function unloads the elevator at all floors that are not the first.
@@ -138,13 +124,9 @@ class Simulation:
     else  wanting to get off at that floor then goes to the next floor from the
     list. Once the elevator is completely unloaded it calls the checkup function"""
     while self.currentFloorNum in self.goingUpFloors:
-      print("Current floor:", self.currentFloorNum)
-      print("GoingUpFloors:", self.goingUpFloors)
-      print("People In Elevator:", self.peopleInElevator)
       self.peopleInElevator -= 1
       self.goingUpFloors.remove(self.currentFloorNum)
     if self.peopleInElevator == 0:
-      print("elevator is empty at floor", self.currentFloorNum)
       self.scheduleTIME(self.elevatorCheckup, 0)
     else:
       self.goingToFloor = min(self.goingUpFloors)
@@ -168,10 +150,8 @@ class Simulation:
       else:
         self.scheduleTIME(self.elevatorLoad, 0)
     elif self.goingUpFloors != []:
-      print("Elevator going up, unloading")
       self.scheduleTIME(self.elevatorUnload, 0)
     else:
-      print("Elevator going down, loading")
       self.scheduleTIME(self.elevatorLoad, 0)
     
   def update(self):
@@ -190,3 +170,34 @@ sim = Simulation()
 while sim.time < sim_time:
   # randomly determine whether an event happens this second
   sim.update()
+  if ( sim.time > next_snapshot):
+    print("Elevator state\n at time", int(sim.time))
+    print("   ___")
+    for i in range(sim.numFloors, 1, -1):
+      floorString = str(i) + " "
+      if i < 10:
+        floorString += " "
+      if i == sim.currentFloorNum:
+        floorString += "[" +str(sim.peopleInElevator) + "] "
+      else:
+        floorString += " |  "
+      floorQueue = sim.otherFloorQueues[i-2]
+
+      for j in range(floorQueue):
+        floorString += "o "
+      print(floorString)
+    firstFloorString = "1 "
+    if sim.currentFloorNum == 1:
+      firstFloorString += " [" +str(sim.peopleInElevator) + "] "
+    else:
+      firstFloorString += "  |  "
+    for k in range(sim.firstFloorQueue):
+      firstFloorString += "o "
+    print(firstFloorString)
+    print("   ___\n")
+    """  
+    print("Time: ", sim.time, "\n People in Elevator:", sim.peopleInElevator, "\n Floor Queues: \n Floor 1:", sim.firstFloorQueue)
+    for i in range(len(sim.otherFloorQueues)):
+      print("Floor " + str(i+2) + ":", sim.otherFloorQueues[i])
+    """
+    next_snapshot += snapshot_interval
