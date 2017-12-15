@@ -5,8 +5,8 @@ from queue import PriorityQueue
 class Simulation:
   def __init__(self):
     self.time = 0
-    self.numFloors = 50
-    self.elevatorCapacity = 25
+    self.numFloors = 6
+    self.elevatorCapacity = 8
     self.floor1ArrivalRate = 1 #Per minute
     self.floorXArrivalRate = self.floor1ArrivalRate/(self.numFloors) + 0.01 #Per minute
     self.elevatorSpeed = 0.17 #seconds between floors
